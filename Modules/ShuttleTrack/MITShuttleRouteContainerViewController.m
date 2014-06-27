@@ -50,6 +50,8 @@ typedef NS_ENUM(NSUInteger, MITShuttleStopSubtitleLabelAnimationType) {
 @property (nonatomic) MITShuttleRouteContainerState previousState;
 @property (nonatomic, getter = isRotating) BOOL rotating;
 
+@property (nonatomic) NSInteger selectedStopIndex;
+
 @end
 
 @implementation MITShuttleRouteContainerViewController
@@ -81,6 +83,7 @@ typedef NS_ENUM(NSUInteger, MITShuttleStopSubtitleLabelAnimationType) {
     [super viewDidLoad];
     self.edgesForExtendedLayout = UIRectEdgeNone;
     [self displayAllChildViewControllers];
+    self.stopsScrollView.contentOffset = CGPointMake(2 * self.stopsScrollView.frame.size.width, 0);
     [self layoutStopViews];
     [self setupToolbar];
     [self configureLayoutForState:self.state animated:NO];
@@ -308,33 +311,24 @@ typedef NS_ENUM(NSUInteger, MITShuttleStopSubtitleLabelAnimationType) {
 - (void)layoutStopViews
 {
     CGSize stopViewSize = self.stopsScrollView.frame.size;
-    CGFloat xOffset = 0;
-    for (MITShuttleStopViewController *stopViewController in self.stopViewControllers) {
-        stopViewController.view.frame = CGRectMake(xOffset, 0, stopViewSize.width, stopViewSize.height);
-        xOffset += stopViewSize.width;
+
+    self.stopsScrollView.contentSize = CGSizeMake(self.stopViewControllers.count * stopViewSize.width, stopViewSize.height);
+    
+    for (NSInteger i = 0; i < self.stopViewControllers.count; i++) {
+        NSInteger stopIndexToPosition = (self.selectedStopIndex + self.stopViewControllers.count - 2 + i) % self.stopViewControllers.count;
+        UIViewController *stopViewController = self.stopViewControllers[stopIndexToPosition];
+        stopViewController.view.frame = CGRectMake(stopViewSize.width * (i - 0), 0, stopViewSize.width, stopViewSize.height);
     }
-    self.stopsScrollView.contentSize = CGSizeMake(xOffset, stopViewSize.height);
 }
 
 - (void)selectStop:(MITShuttleStop *)stop
 {
-    NSInteger index = [self.route.stops indexOfObject:stop];
-    CGFloat offset = self.stopsScrollView.frame.size.width * index;
-    [self.stopsScrollView setContentOffset:CGPointMake(offset, 0) animated:NO];
+    self.selectedStopIndex = [self.route.stops indexOfObject:stop];
+    [self layoutStopViews];
 }
 
-- (void)didScrollToStop:(MITShuttleStop *)stop
+- (void)didScrollToStop:(MITShuttleStop *)stop animationType:(MITShuttleStopSubtitleLabelAnimationType)animationType
 {
-    MITShuttleStopSubtitleLabelAnimationType animationType;
-    NSInteger previousStopIndex = [self.route.stops indexOfObject:self.stop];
-    NSInteger newStopIndex = [self.route.stops indexOfObject:stop];
-    if (previousStopIndex < newStopIndex) {
-        animationType = MITShuttleStopSubtitleLabelAnimationTypeForward;
-    } else if (previousStopIndex > newStopIndex) {
-        animationType = MITShuttleStopSubtitleLabelAnimationTypeBackward;
-    } else {
-        animationType = MITShuttleStopSubtitleLabelAnimationTypeNone;
-    }
     [self setStopSubtitleWithStop:stop animationType:animationType];
     self.stop = stop;
 }
@@ -637,9 +631,40 @@ typedef NS_ENUM(NSUInteger, MITShuttleStopSubtitleLabelAnimationType) {
 - (void)scrollViewWillEndDragging:(UIScrollView *)scrollView withVelocity:(CGPoint)velocity targetContentOffset:(inout CGPoint *)targetContentOffset
 {
     if (scrollView == self.stopsScrollView) {
-        NSInteger stopIndex = (*targetContentOffset).x / self.stopsScrollView.frame.size.width;
-        MITShuttleStop *stop = self.route.stops[stopIndex];
-        [self didScrollToStop:stop];
+        NSInteger oldSelectedIndex = self.selectedStopIndex;
+        NSInteger targetIndex = (*targetContentOffset).x / self.stopsScrollView.frame.size.width;
+        MITShuttleStopSubtitleLabelAnimationType animationType = MITShuttleStopSubtitleLabelAnimationTypeNone;
+        
+        if (targetIndex > 2) {
+            // go to next
+            animationType = MITShuttleStopSubtitleLabelAnimationTypeForward;
+            
+            if (self.selectedStopIndex + 1 >= self.stopViewControllers.count) {
+                self.selectedStopIndex = 0;
+            } else {
+                self.selectedStopIndex++;
+            }
+            scrollView.contentOffset = CGPointMake(scrollView.contentOffset.x - scrollView.bounds.size.width, scrollView.contentOffset.y);
+            [self layoutStopViews];
+        } else if (targetIndex < 2) {
+            // go to prev
+            animationType = MITShuttleStopSubtitleLabelAnimationTypeBackward;
+            
+            if (self.selectedStopIndex - 1 < 0) {
+                self.selectedStopIndex = self.stopViewControllers.count - 1;
+            } else {
+                self.selectedStopIndex--;
+            }
+            
+            scrollView.contentOffset = CGPointMake(scrollView.contentOffset.x + scrollView.bounds.size.width, scrollView.contentOffset.y);
+            [self layoutStopViews];
+        }
+        
+        if (oldSelectedIndex != self.selectedStopIndex) {
+            MITShuttleStop *stop = self.route.stops[self.selectedStopIndex];
+            [self didScrollToStop:stop animationType:animationType];
+        }
+        
     }
 }
 

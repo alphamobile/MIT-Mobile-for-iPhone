@@ -206,7 +206,7 @@ NSString * const kMITShuttleStopViewControllerNoDataCellReuseIdentifier = @"kMIT
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
 {
     MITShuttleRoute *route = [self routeForSection:indexPath.section];
-    
+
     if (route) {
         NSArray *predictionsArray = self.predictionLoader.predictionsByRoute[route.identifier];
         MITShuttlePrediction *prediction = nil;
