@@ -321,6 +321,7 @@
 		A51EBA681937B7F9000F41EE /* MITShuttleRouteNoDataCell.xib in Resources */ = {isa = PBXBuildFile; fileRef = A51EBA661937B7F9000F41EE /* MITShuttleRouteNoDataCell.xib */; };
 		A53F6DB41935077D0018E66C /* MITShuttleStopAlarmCell.m in Sources */ = {isa = PBXBuildFile; fileRef = A53F6DB21935077D0018E66C /* MITShuttleStopAlarmCell.m */; };
 		A53F6DB51935077D0018E66C /* MITShuttleStopAlarmCell.xib in Resources */ = {isa = PBXBuildFile; fileRef = A53F6DB31935077D0018E66C /* MITShuttleStopAlarmCell.xib */; };
+		A544EEF81961236F0046823E /* MITTiledMapView.m in Sources */ = {isa = PBXBuildFile; fileRef = A544EEF71961236F0046823E /* MITTiledMapView.m */; };
 		A580266C193E04B600BD0DDE /* MITShuttleStopNotificationManager.m in Sources */ = {isa = PBXBuildFile; fileRef = A580266B193E04B600BD0DDE /* MITShuttleStopNotificationManager.m */; };
 		A5960A121940B98D0028E86C /* MITShuttleMapBusAnnotationView.m in Sources */ = {isa = PBXBuildFile; fileRef = A5960A111940B98D0028E86C /* MITShuttleMapBusAnnotationView.m */; };
 		A63DEE281353CF37001C52BF /* EventKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A63DEE271353CF37001C52BF /* EventKit.framework */; };
@@ -1122,6 +1123,8 @@
 		A53F6DB11935077D0018E66C /* MITShuttleStopAlarmCell.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MITShuttleStopAlarmCell.h; sourceTree = "<group>"; };
 		A53F6DB21935077D0018E66C /* MITShuttleStopAlarmCell.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MITShuttleStopAlarmCell.m; sourceTree = "<group>"; };
 		A53F6DB31935077D0018E66C /* MITShuttleStopAlarmCell.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = MITShuttleStopAlarmCell.xib; sourceTree = "<group>"; };
+		A544EEF61961236F0046823E /* MITTiledMapView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MITTiledMapView.h; sourceTree = "<group>"; };
+		A544EEF71961236F0046823E /* MITTiledMapView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MITTiledMapView.m; sourceTree = "<group>"; };
 		A580266A193E04B600BD0DDE /* MITShuttleStopNotificationManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MITShuttleStopNotificationManager.h; sourceTree = "<group>"; };
 		A580266B193E04B600BD0DDE /* MITShuttleStopNotificationManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MITShuttleStopNotificationManager.m; sourceTree = "<group>"; };
 		A5960A101940B98D0028E86C /* MITShuttleMapBusAnnotationView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MITShuttleMapBusAnnotationView.h; sourceTree = "<group>"; };
@@ -1475,6 +1478,7 @@
 		080E96DDFE201D6D7F000001 /* Common */ = {
 			isa = PBXGroup;
 			children = (
+				A544EEF51961236F0046823E /* Views */,
 				2C101A451653E931000E40E3 /* MapCore */,
 				2C3C9D7314CDC0B2005646F7 /* Categories */,
 				3AA21C481039DDBA00DB7637 /* Connection */,
@@ -2782,6 +2786,15 @@
 			path = Entities;
 			sourceTree = "<group>";
 		};
+		A544EEF51961236F0046823E /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				A544EEF61961236F0046823E /* MITTiledMapView.h */,
+				A544EEF71961236F0046823E /* MITTiledMapView.m */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
 		BD1E92F3103B5D60004429AA /* JSON */ = {
 			isa = PBXGroup;
 			children = (
@@ -3506,6 +3519,7 @@
 				2C49DBB217E8AB9400ABA319 /* MITMapModelController.m in Sources */,
 				2C7EEAFC1871B00E009ED73D /* MITNewsCategoriesResource.m in Sources */,
 				44C1A2A811A2F49B000FD653 /* CampusMap.xcdatamodeld in Sources */,
+				A544EEF81961236F0046823E /* MITTiledMapView.m in Sources */,
 				DEA8768018AAE9AD00327823 /* DDDispatchQueueLogFormatter.m in Sources */,
 				2CA73ECF18171AFD00A42D03 /* MITMapBookmark.m in Sources */,
 				DEE283EE10F5109800B39531 /* Emergency.xcdatamodeld in Sources */,
