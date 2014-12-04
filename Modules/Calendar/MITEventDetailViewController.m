@@ -24,6 +24,24 @@ static NSInteger const kMITEventDetailsSection = 0;
 static NSInteger const kMITEventDetailsEmailAlertTag = 1124;
 static NSInteger const kMITEventDetailsPhoneCallAlertTag = 7643;
 
+#pragma mark - EKEventEditViewController - PreferredContentSize
+/*
+ In iOS 8, when presenting this controller in a form sheet.  
+ Setting preferred content size does nothing as well as attempting to set the view bounds.  
+ This is the least invasive way I found to size the formsheet presentation appropriately.
+ */
+@interface EKEventEditViewController (ModalFormSheetSizing)
+@end
+
+@implementation EKEventEditViewController (ModalFormSheetSizing)
+- (CGSize)preferredContentSize
+{
+    return CGSizeMake(540, 620);
+}
+@end
+
+#pragma mark - MITEventDetailViewController
+
 @interface MITEventDetailViewController () <MITWebviewCellDelegate, EKEventEditViewDelegate, UIAlertViewDelegate, MFMailComposeViewControllerDelegate>
 
 @property (nonatomic, strong) NSArray *rowTypes;
@@ -221,7 +239,20 @@ static NSInteger const kMITEventDetailsPhoneCallAlertTag = 7643;
         eventViewController.event = event;
         eventViewController.eventStore = eventStore;
         eventViewController.editViewDelegate = self;
-        [self presentViewController:eventViewController animated:YES completion:NULL];
+        
+        
+        if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
+            eventViewController.modalPresentationStyle = UIModalPresentationFormSheet;
+            // Setting animated to YES causes the view controller to jump towards the bottom of the iPad after presenting in landscape.
+            [self presentViewController:eventViewController animated:NO completion:nil];
+        } else {
+            if ([[[UIDevice currentDevice] systemVersion] floatValue] >= 8.0) {
+                // Necessary for scrollsToStop functionality in eventViewController in iPhone.  Otherwise the textView must be overriding it. Only available in iOS 8
+                [[UITextView appearanceWhenContainedIn:[EKEventEditViewController class], nil] setScrollsToTop:NO];
+            }
+            [self presentViewController:eventViewController animated:YES completion:nil];
+        }
+        
     };
     
     if ([eventStore respondsToSelector:@selector(requestAccessToEntityType:completion:)]) {
@@ -251,11 +282,13 @@ static NSInteger const kMITEventDetailsPhoneCallAlertTag = 7643;
 
 - (void)configureDetailCell:(MITEventDetailCell *)detailCell ofType:(MITEventDetailRowType)type
 {
+    detailCell.selectionStyle = UITableViewCellSelectionStyleDefault;
     switch (type) {
         case MITEventDetailRowTypeSpeaker: {
             [detailCell setTitle:@"speaker"];
             [detailCell setDetailText:self.event.lecturer];
             detailCell.accessoryView = nil;
+            detailCell.selectionStyle = UITableViewCellSelectionStyleNone;
             break;
         }
         case MITEventDetailRowTypeTime: {
@@ -271,14 +304,12 @@ static NSInteger const kMITEventDetailsPhoneCallAlertTag = 7643;
             [detailCell setTitle:@"location"];
             [detailCell setDetailText:[self.event.location locationString]];
             detailCell.accessoryView = [UIImageView accessoryViewWithMITType:MITAccessoryViewMap];
-            
             break;
         }
         case MITEventDetailRowTypePhone: {
             [detailCell setTitle:@"phone"];
             [detailCell setDetailText:self.event.contact.phone];
             detailCell.accessoryView = [UIImageView accessoryViewWithMITType:MITAccessoryViewPhone];
-            
             break;
         }
         case MITEventDetailRowTypeDescription: {
@@ -295,6 +326,7 @@ static NSInteger const kMITEventDetailsPhoneCallAlertTag = 7643;
             [detailCell setTitle:@"open to"];
             [detailCell setDetailText:self.event.openTo];
             detailCell.accessoryView = nil;
+            detailCell.selectionStyle = UITableViewCellSelectionStyleNone;
             break;
         }
         case MITEventDetailRowTypeCost: {
@@ -302,13 +334,15 @@ static NSInteger const kMITEventDetailsPhoneCallAlertTag = 7643;
             NSString *costString = self.event.cost;
             [detailCell setDetailText:costString];
             detailCell.accessoryView = nil;
+            detailCell.selectionStyle = UITableViewCellSelectionStyleNone;
             break;
         }
         case MITEventDetailRowTypeSponsors: {
-            [detailCell setTitle:@"sponsor(s)"];
+            [detailCell setTitle:@"sponsor"];
             NSString *detailText = [[self.event.sponsors.allObjects valueForKey:@"name"] componentsJoinedByString:@"\n"];
             [detailCell setDetailText:detailText];
             detailCell.accessoryView = nil;
+            detailCell.selectionStyle = UITableViewCellSelectionStyleNone;
             break;
         }
         case MITEventDetailRowTypeContact: {
