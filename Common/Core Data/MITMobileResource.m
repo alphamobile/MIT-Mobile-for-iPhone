@@ -1,3 +1,4 @@
+#import <RestKit/RestKit.h>
 #import "MITMobileResource.h"
 
 static inline void MITMobileEnumerateRequestMethodsUsingBlock(RKRequestMethod method, void (^block)(RKRequestMethod method))
@@ -20,9 +21,20 @@ static inline void MITMobileEnumerateRequestMethodsUsingBlock(RKRequestMethod me
     }];
 }
 
+#pragma mark Private Classes
+@interface MITMobileResourceMapping : NSObject
+@property(nonatomic,copy) NSString *keyPath;
+@property(nonatomic,strong) NSArray *mappings;
+@property(nonatomic) RKRequestMethod requestMethod;
+
+- (instancetype)initWithKeyPath:(NSString*)keyPath requestMethod:(RKRequestMethod)method;
+- (void)addMapping:(RKMapping*)mapping;
+- (void)enumerateMappingsUsingBlock:(void(^)(NSString *keyPath, RKMapping *mapping))block;
+@end
+
 #pragma mark -
 @interface MITMobileResource ()
-@property (nonatomic,strong) NSMutableDictionary *registeredMappings;
+@property (nonatomic,strong) NSMutableArray *registeredMappings;
 @end
 
 @implementation MITMobileResource
@@ -59,9 +71,10 @@ static inline void MITMobileEnumerateRequestMethodsUsingBlock(RKRequestMethod me
     return self;
 }
 
-- (NSMutableDictionary*)registeredMappings
+- (NSMutableArray*)registeredMappings
 {
     if (!_registeredMappings) {
+        _registeredMappings = [[NSMutableArray alloc] init];
         [self loadMappings];
     }
 
@@ -77,34 +90,18 @@ static inline void MITMobileEnumerateRequestMethodsUsingBlock(RKRequestMethod me
 {
     NSParameterAssert(mapping);
 
-    if (_registeredMappings == nil) {
-        _registeredMappings = [[NSMutableDictionary alloc] init];
-    }
-
     MITMobileEnumerateRequestMethodsUsingBlock(method, ^(RKRequestMethod requestMethod) {
-        NSString *key = RKStringFromRequestMethod(requestMethod);
-
-        NSMutableDictionary *mappings = self.registeredMappings[key];
-        NSAssert(mappings || !keyPath,@"unable to set mapping for keypath '%@' until a mapping for the nil keypath is added",keyPath);
-        NSAssert(!mappings || keyPath,@"a mapping for the nil keypath for method '%@' already exists",key);
-
-        if (!mappings) {
-            mappings = [[NSMutableDictionary alloc] init];
-            mappings[[NSNull null]] = mapping;
-            self.registeredMappings[key] = mappings;
-        } else {
-            mappings[key] = mapping;
-        }
+        MITMobileResourceMapping *resourceMapping = [self _resourceMappingForKeyPath:keyPath requestMethod:requestMethod];
+        [resourceMapping addMapping:mapping];
     });
 }
 
-- (void)enumerateMappingsByRequestMethodUsingBlock:(void (^)(RKRequestMethod method, NSDictionary *mappings))block
+- (void)enumerateMappingsUsingBlock:(void (^)(NSString *keyPath, RKRequestMethod method, NSArray *mappings))block
 {
     NSParameterAssert(block);
 
-    [self.registeredMappings enumerateKeysAndObjectsUsingBlock:^(NSString *methodName, NSDictionary *mappings, BOOL *stop) {
-        RKRequestMethod method = RKRequestMethodFromString(methodName);
-        block(method,mappings);
+    [self.registeredMappings enumerateObjectsUsingBlock:^(MITMobileResourceMapping *mapping, NSUInteger idx, BOOL *stop) {
+        block(mapping.keyPath,mapping.requestMethod,mapping.mappings);
     }];
 }
 
@@ -113,44 +110,101 @@ static inline void MITMobileEnumerateRequestMethodsUsingBlock(RKRequestMethod me
     NSParameterAssert(block);
 
     MITMobileEnumerateRequestMethodsUsingBlock(method, ^(RKRequestMethod method) {
-        NSString *key = RKStringFromRequestMethod(method);
-        NSDictionary *mappings = self.registeredMappings[key];
-
-        NSArray *keyPaths = [[mappings allKeys] sortedArrayUsingComparator:^NSComparisonResult(id obj1, id obj2) {
-            NSNull *nullObj = [NSNull null];
-
-            if ([obj1 isEqual:nullObj] || [obj2 isEqual:nullObj]) {
-                if ([obj1 isEqual:nullObj] && [obj2 isEqual:nullObj]) {
-                    return NSOrderedSame;
-                } else if ([obj1 isEqual:nullObj]) {
-                    return NSOrderedDescending;
-                } else {
-                    return NSOrderedAscending;
-                }
-            } else {
-                NSString *key1 = (NSString*)obj1;
-                NSString *key2 = (NSString*)obj2;
-                return [key1 caseInsensitiveCompare:key2];
+        [self.registeredMappings enumerateObjectsUsingBlock:^(MITMobileResourceMapping *resourceMapping, NSUInteger idx, BOOL *stop) {
+            if (resourceMapping.requestMethod == method) {
+                [resourceMapping enumerateMappingsUsingBlock:^(NSString *keyPath, RKMapping *mapping) {
+                    block(keyPath,mapping);
+                }];
             }
         }];
-
-        [keyPaths enumerateObjectsUsingBlock:^(NSString *keyPath, NSUInteger idx, BOOL *stop) {
-            block(keyPath,mappings[keyPath]);
-        }];
     });
+}
+
+- (MITMobileResourceMapping*)_resourceMappingForKeyPath:(NSString*)keyPath requestMethod:(RKRequestMethod)method
+{
+    __block MITMobileResourceMapping *resourceMapping = nil;
+    [self.registeredMappings enumerateObjectsUsingBlock:^(MITMobileResourceMapping *mapping, NSUInteger idx, BOOL *stop) {
+        if (mapping.requestMethod == method) {
+            if ((mapping.keyPath == keyPath) || [mapping.keyPath isEqualToString:keyPath]) {
+                resourceMapping = mapping;
+                (*stop) = YES;
+            }
+        }
+    }];
+
+    if (!resourceMapping) {
+        resourceMapping = [[MITMobileResourceMapping alloc] initWithKeyPath:keyPath requestMethod:method];
+        [self.registeredMappings addObject:resourceMapping];
+    }
+
+    return resourceMapping;
 }
 
 - (RKRequestMethod)requestMethods
 {
     __block RKRequestMethod methods = 0;
-    [self.registeredMappings enumerateKeysAndObjectsUsingBlock:^(NSString *method, id obj, BOOL *stop) {
-        RKRequestMethod requestMethod = RKRequestMethodFromString(method);
-        methods |= requestMethod;
+    [self.registeredMappings enumerateObjectsUsingBlock:^(MITMobileResourceMapping *resourceMapping, NSUInteger idx, BOOL *stop) {
+        methods |= resourceMapping.requestMethod;
     }];
 
     return methods;
 }
 
 
-#pragma mark - Dynamic Properties
+@end
+
+
+@implementation MITMobileResourceMapping
+- (instancetype)initWithKeyPath:(NSString*)keyPath requestMethod:(RKRequestMethod)method
+{
+    self = [super init];
+    if (self) {
+        _keyPath = [keyPath copy];
+        _requestMethod = method;
+    }
+
+    return self;
+}
+
+- (void)addMapping:(RKMapping*)mapping
+{
+    NSParameterAssert(mapping);
+
+    NSMutableArray *mappings = [NSMutableArray arrayWithArray:self.mappings];
+    [mappings addObject:mapping];
+    self.mappings = mappings;
+}
+
+- (void)enumerateMappingsUsingBlock:(void(^)(NSString *keyPath, RKMapping *mapping))block
+{
+    NSParameterAssert(block);
+
+    [self.mappings enumerateObjectsUsingBlock:^(RKMapping *mapping, NSUInteger idx, BOOL *stop) {
+        block(self.keyPath,mapping);
+    }];
+}
+
+- (NSUInteger)hash {
+    return [self.keyPath hash];
+}
+
+- (BOOL)isEqual:(id)object
+{
+    if ([super isEqual:object]) {
+        return YES;
+    } else if ([object isKindOfClass:[self class]]) {
+        MITMobileResourceMapping *otherMapping = (MITMobileResourceMapping*)object;
+        return [self isEqualToResourceMapping:otherMapping];
+    } else {
+        return NO;
+    }
+}
+
+- (BOOL)isEqualToResourceMapping:(MITMobileResourceMapping*)otherMapping
+{
+    return ([self.keyPath isEqualToString:otherMapping.keyPath] &&
+            [self.mappings isEqualToArray:otherMapping.mappings] &&
+            self.requestMethod == otherMapping.requestMethod);
+}
+
 @end

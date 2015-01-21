@@ -210,8 +210,8 @@ NSString* const MITMobileErrorDomain = @"MITMobileErrorDomain";
             
             // Setup the response descriptors for the resource. This will probably be done a different way
             // when (if) we move away from RKObjectManager.
-            [resource enumerateMappingsByRequestMethodUsingBlock:^(RKRequestMethod method, NSDictionary *mappings) {
-                [mappings enumerateKeysAndObjectsUsingBlock:^(NSString *keyPath, RKMapping *mapping, BOOL *stop) {
+            [resource enumerateMappingsUsingBlock:^(NSString *keyPath, RKRequestMethod method, NSArray *mappings) {
+                [mappings enumerateObjectsUsingBlock:^(RKMapping *mapping, NSUInteger idx, BOOL *stop) {
                     RKResponseDescriptor *responseDescriptor = [RKResponseDescriptor responseDescriptorWithMapping:mapping
                                                                                                             method:method
                                                                                                        pathPattern:resource.pathPattern

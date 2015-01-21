@@ -21,6 +21,6 @@ typedef void (^MITMobileResult)(NSArray *objects, NSError *error);
 
 - (void)loadMappings;
 - (void)addMapping:(RKMapping*)mapping atKeyPath:(NSString*)keyPath forRequestMethod:(RKRequestMethod)method;
-- (void)enumerateMappingsByRequestMethodUsingBlock:(void (^)(RKRequestMethod method, NSDictionary *mappings))block;
+- (void)enumerateMappingsUsingBlock:(void(^)(NSString *keyPath, RKRequestMethod method, NSArray *mappings))block;
 - (void)enumerateMappingsForRequestMethod:(RKRequestMethod)method usingBlock:(void (^)(NSString *keyPath, RKMapping *mapping))block;
 @end
